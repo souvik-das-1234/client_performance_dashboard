@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extensive Marketing Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <style>
+        body {
+            background-color: #111827;
+            color: #d1d5db;
+            font-family: 'Inter', sans-serif;
+        }
+        .card {
+            background-color: #1f2937;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .chart-container {
+            background-color: #1f2937;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+        .kpi-value {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .kpi-change {
+            font-size: 0.875rem;
+        }
+        .kpi-change.positive {
+            color: #10b981;
+        }
+        .kpi-change.negative {
+            color: #ef4444;
+        }
+        .view-btn.active {
+            background-color: #4f46e5;
+            color: #fff;
+        }
+        .view-btn {
+            background-color: #374151;
+            color: #d1d5db;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #374151;
+        }
+        th {
+            background-color: #374151;
+            font-weight: 600;
+            color: #fff;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6 lg:p-8">
+    <div class="max-w-screen-2xl mx-auto">
+        <!-- Tier 1: Global Controls -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">Marketing Performance Dashboard</h1>
+            <p class="text-lg text-gray-400">Client-centric analytics and forecasting.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 p-4 bg-gray-800 rounded-lg">
+            <div>
+                <label for="client-selector" class="block text-sm font-medium text-gray-400 mb-2">Select Client</label>
+                <select id="client-selector" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"></select>
+            </div>
+            <div>
+                <label for="date-range-picker" class="block text-sm font-medium text-gray-400 mb-2">Select Date Range</label>
+                <input id="date-range-picker" type="text" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Time Granularity</label>
+                <div class="flex rounded-md shadow-sm">
+                    <button id="daily-view-btn" class="view-btn active flex-1 py-2 px-4 font-semibold rounded-l-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Daily</button>
+                    <button id="weekly-view-btn" class="view-btn flex-1 py-2 px-4 font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Weekly</button>
+                    <button id="monthly-view-btn" class="view-btn flex-1 py-2 px-4 font-semibold rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Monthly</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tier 2: At-a-Glance Performance Snapshot -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="card">
+                <h2 class="text-lg font-medium text-gray-400">Total SMM Views</h2>
+                <p id="smm-views" class="kpi-value">0</p>
+                <p id="smm-views-change" class="kpi-change"></p>
+            </div>
+            <div class="card">
+                <h2 class="text-lg font-medium text-gray-400">Total Reach</h2>
+                <p id="reach" class="kpi-value">0</p>
+                <p id="reach-change" class="kpi-change"></p>
+            </div>
+            <div class="card">
+                <h2 class="text-lg font-medium text-gray-400">Total Engagement</h2>
+                <p id="engagement" class="kpi-value">0</p>
+                <p id="engagement-change" class="kpi-change"></p>
+            </div>
+            <div class="card">
+                <h2 class="text-lg font-medium text-gray-400">Follower Growth</h2>
+                <p id="followers-gain" class="kpi-value">0</p>
+                <p id="followers-gain-change" class="kpi-change"></p>
+            </div>
+        </div>
+
+        <!-- Tier 3: Audience Growth & Engagement Deep Dive -->
+        <h2 class="text-2xl font-bold text-white mb-4">Audience Growth & Engagement</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="chart-container">
+                <h3 class="text-xl font-bold mb-4">Follower Growth Trend</h3>
+                <canvas id="follower-growth-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3 class="text-xl font-bold mb-4">Engagement Rate Over Time</h3>
+                <canvas id="engagement-rate-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Tier 4: Keyword & SEO Analysis -->
+        <h2 class="text-2xl font-bold text-white mb-4">Keyword & SEO Analysis</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+            <div class="lg:col-span-3 chart-container">
+                <h3 class="text-xl font-bold mb-4">Keyword Ranking Trend</h3>
+                <canvas id="keyword-ranking-chart"></canvas>
+            </div>
+            <div class="lg:col-span-2 chart-container">
+                <h3 class="text-xl font-bold mb-4">Top 5 Keywords</h3>
+                <table id="keyword-table">
+                    <thead>
+                        <tr>
+                            <th>Keyword</th>
+                            <th>Avg. Rank</th>
+                            <th>Best Rank</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows will be inserted dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tier 5: Predictive Analytics & Forecasting -->
+        <h2 class="text-2xl font-bold text-white mb-4">Predictive Analytics & Forecasting</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="chart-container">
+                <h3 class="text-xl font-bold mb-4">4-Month KPI Forecast</h3>
+                <canvas id="kpi-forecast-chart"></canvas>
+            </div>
+            <div class="card flex flex-col justify-center items-center text-center">
+                 <h3 class="text-xl font-bold mb-4">Next Month's Goal Recommendation</h3>
+                 <div id="goal-recommendation" class="text-lg text-gray-300"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- IMPORTANT ---
+        // Replace with your Google Sheets API Key.
+        const API_KEY = 'AIzaSyAs-bU8AMGQJyJFKjxwRZ8So0aKIDeZVBU'; 
+        const SPREADSHEET_ID = '1DURqwAVo6IvTT4A_5onukpH7NxomeqCsVWEAnLmaqQk'; 
+
+        let allData = {};
+        let charts = {};
+        let currentView = 'daily';
+
+        // --- CHART & DATA FUNCTIONS ---
+
+        async function getSheetNames() {
+            // Fetches client names from sheet tabs
+            try {
+                const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${API_KEY}`);
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+                return data.sheets.map(sheet => sheet.properties.title);
+            } catch (error) {
+                console.error('getSheetNames Error:', error);
+                alert('Failed to fetch client list. Please check your API Key and Spreadsheet ID.');
+                return [];
+            }
+        }
+
+        async function fetchData(sheetName) {
+            // Fetches data for a specific client
+            try {
+                const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}?key=${API_KEY}`);
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+                return data.values;
+            } catch (error) {
+                console.error(`fetchData Error for ${sheetName}:`, error);
+                return [];
+            }
+        }
+
+        function parseData(data) {
+            // Converts raw sheet data to structured objects
+            if (!data || data.length < 2) return [];
+            const headers = data[0];
+            const rows = data.slice(1);
+            return rows.map(row => {
+                const rowData = {};
+                headers.forEach((header, index) => {
+                    rowData[header] = row[index];
+                });
+                // Ensure numeric types
+                rowData['SMM Views'] = parseInt(rowData['SMM Views'] || 0);
+                rowData['Reach'] = parseInt(rowData['Reach'] || 0);
+                rowData['Engagement'] = parseInt(rowData['Engagement'] || 0);
+                rowData['Followers Gain'] = parseInt(rowData['Followers Gain'] || 0);
+                return rowData;
+            });
+        }
+        
+        // --- UPDATE FUNCTIONS ---
+
+        function updateKpiCards(currentPeriodData, previousPeriodData) {
+            const kpis = ['SMM Views', 'Reach', 'Engagement', 'Followers Gain'];
+            const ids = ['smm-views', 'reach', 'engagement', 'followers-gain'];
+
+            kpis.forEach((kpi, index) => {
+                const currentSum = currentPeriodData.reduce((sum, row) => sum + row[kpi], 0);
+                const previousSum = previousPeriodData.reduce((sum, row) => sum + row[kpi], 0);
+                
+                document.getElementById(ids[index]).textContent = currentSum.toLocaleString();
+
+                const change = ((currentSum - previousSum) / (previousSum || 1)) * 100;
+                const changeEl = document.getElementById(`${ids[index]}-change`);
+                
+                if (isFinite(change)) {
+                    changeEl.textContent = `${change > 0 ? '▲' : '▼'} ${Math.abs(change).toFixed(1)}% vs previous period`;
+                    changeEl.className = `kpi-change ${change >= 0 ? 'positive' : 'negative'}`;
+                } else {
+                    changeEl.textContent = 'No previous data';
+                    changeEl.className = 'kpi-change';
+                }
+            });
+        }
+
+        function groupData(data, view) {
+            const grouped = {};
+            const format = view === 'daily' ? 'YYYY-MM-DD' : (view === 'weekly' ? 'gggg-WW' : 'YYYY-MM');
+            
+            data.forEach(row => {
+                const key = moment(row.Date, 'M/D/YYYY').format(format);
+                if (!grouped[key]) {
+                    grouped[key] = [];
+                }
+                grouped[key].push(row);
+            });
+            return grouped;
+        }
+
+        function updateFollowerGrowthChart(data) {
+            if (charts.followerGrowth) charts.followerGrowth.destroy();
+            if (!data.length) return;
+
+            let cumulativeFollowers = 0;
+            const labels = data.map(row => moment(row.Date, 'M/D/YYYY').format('MMM D'));
+            const chartData = data.map(row => {
+                cumulativeFollowers += row['Followers Gain'];
+                return cumulativeFollowers;
+            });
+
+            const ctx = document.getElementById('follower-growth-chart').getContext('2d');
+            charts.followerGrowth = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Followers',
+                        data: chartData,
+                        borderColor: '#818cf8',
+                        backgroundColor: 'rgba(129, 140, 248, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: defaultChartOptions()
+            });
+        }
+
+        function updateEngagementRateChart(data, view) {
+            if (charts.engagementRate) charts.engagementRate.destroy();
+            const groupedData = groupData(data, view);
+            
+            const labels = Object.keys(groupedData).sort();
+            const chartData = labels.map(key => {
+                const group = groupedData[key];
+                const totalEngagement = group.reduce((sum, row) => sum + row.Engagement, 0);
+                const totalReach = group.reduce((sum, row) => sum + row.Reach, 0);
+                return totalReach > 0 ? (totalEngagement / totalReach) * 100 : 0;
+            });
+            
+            const ctx = document.getElementById('engagement-rate-chart').getContext('2d');
+            charts.engagementRate = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Engagement Rate (%)',
+                        data: chartData,
+                        borderColor: '#f472b6',
+                        tension: 0.4
+                    }]
+                },
+                options: defaultChartOptions()
+            });
+        }
+        
+        function updateKeywordRankingChart(data, view) {
+            if (charts.keywordRanking) charts.keywordRanking.destroy();
+            if (!data.length) return;
+            const keywords = Object.keys(data[0] || {}).filter(key => key.toLowerCase().includes('keyword'));
+            const groupedData = groupData(data, view);
+            const labels = Object.keys(groupedData).sort();
+
+            const datasets = keywords.map((keyword, index) => {
+                return {
+                    label: keyword,
+                    data: labels.map(key => {
+                        const group = groupedData[key];
+                        const avgRank = group.reduce((sum, row) => sum + parseInt(row[keyword] || 0), 0) / group.length;
+                        return avgRank;
+                    }),
+                    borderColor: `hsl(${(index * 60) % 360}, 70%, 60%)`,
+                    tension: 0.4
+                };
+            });
+
+            const options = defaultChartOptions();
+            options.scales.y.reverse = true;
+
+            const ctx = document.getElementById('keyword-ranking-chart').getContext('2d');
+            charts.keywordRanking = new Chart(ctx, { type: 'line', data: { labels, datasets }, options });
+        }
+
+        function updateKeywordTable(data) {
+            const tableBody = document.querySelector('#keyword-table tbody');
+            tableBody.innerHTML = ''; // Clear existing rows
+            if (!data.length) return;
+
+            const keywords = Object.keys(data[0] || {}).filter(key => key.toLowerCase().includes('keyword'));
+            const keywordStats = keywords.map(keyword => {
+                const ranks = data.map(row => parseInt(row[keyword])).filter(rank => rank > 0);
+                if (ranks.length === 0) return null;
+                return {
+                    name: keyword,
+                    avgRank: ranks.reduce((sum, rank) => sum + rank, 0) / ranks.length,
+                    bestRank: Math.min(...ranks)
+                };
+            }).filter(Boolean);
+
+            keywordStats.sort((a, b) => a.avgRank - b.avgRank);
+
+            keywordStats.slice(0, 5).forEach(stat => {
+                const row = `<tr>
+                    <td>${stat.name}</td>
+                    <td>${stat.avgRank.toFixed(1)}</td>
+                    <td>${stat.bestRank}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function updateKpiForecastChart(fullClientData) {
+            if (charts.kpiForecast) charts.kpiForecast.destroy();
+            if (fullClientData.length < 2) return;
+
+            const kpis = ['SMM Views', 'Reach', 'Engagement', 'Followers Gain'];
+            const colors = ['#60a5fa', '#34d399', '#f472b6', '#fbbf24'];
+            
+            const x = fullClientData.map((_, index) => index);
+            const lastDate = moment(fullClientData[fullClientData.length - 1].Date, 'M/D/YYYY');
+            
+            const datasets = kpis.map((kpi, index) => {
+                const y = fullClientData.map(row => row[kpi]);
+                const { m, b } = linearRegression(x, y);
+                const predictionData = [];
+                for (let i = 1; i <= 4; i++) {
+                    const predictedValue = m * (x.length - 1 + i * 30) + b;
+                    predictionData.push(predictedValue > 0 ? predictedValue : 0);
+                }
+                return {
+                    label: kpi,
+                    data: predictionData,
+                    backgroundColor: colors[index]
+                };
+            });
+
+            const labels = [1, 2, 3, 4].map(i => lastDate.clone().add(i, 'months').format('MMM YYYY'));
+            const ctx = document.getElementById('kpi-forecast-chart').getContext('2d');
+            charts.kpiForecast = new Chart(ctx, { type: 'bar', data: { labels, datasets }, options: defaultChartOptions() });
+        }
+
+        function updateGoalRecommendation(fullClientData) {
+            const goalEl = document.getElementById('goal-recommendation');
+            if (fullClientData.length < 2) {
+                goalEl.innerHTML = '<p>Not enough data to generate recommendations.</p>';
+                return;
+            }
+
+            const x = fullClientData.map((_, index) => index);
+            const yViews = fullClientData.map(row => row['SMM Views']);
+            const yFollowers = fullClientData.map(row => row['Followers Gain']);
+
+            const viewsFit = linearRegression(x, yViews);
+            const followersFit = linearRegression(x, yFollowers);
+
+            const nextMonthIndex = x.length - 1 + 30;
+            const predictedViews = Math.max(0, viewsFit.m * nextMonthIndex + viewsFit.b);
+            const predictedFollowers = Math.max(0, followersFit.m * nextMonthIndex + followersFit.b);
+
+            goalEl.innerHTML = `<p>Based on current trends, a realistic goal for next month is:</p>
+                <p class="text-2xl font-bold text-white mt-2">~${Math.round(predictedViews).toLocaleString()} Views</p>
+                <p class="text-2xl font-bold text-white mt-1">~${Math.round(predictedFollowers).toLocaleString()} New Followers</p>`;
+        }
+        
+        // --- HELPERS & INITIALIZATION ---
+
+        function linearRegression(x, y) {
+            const n = y.length;
+            if (n === 0) return { m: 0, b: 0 };
+            let sx = 0, sy = 0, sxy = 0, sxx = 0;
+            for (let i = 0; i < n; i++) {
+                sx += x[i]; sy += y[i]; sxy += x[i] * y[i]; sxx += x[i] * x[i];
+            }
+            const m = (n * sxx - sx * sx) !== 0 ? (n * sxy - sx * sy) / (n * sxx - sx * sx) : 0;
+            const b = (sy - m * sx) / n;
+            return { m, b };
+        }
+
+        function defaultChartOptions() {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#d1d5db' } } },
+                scales: {
+                    y: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: '#374151' },
+                        beginAtZero: true
+                    },
+                    x: {
+                        ticks: { color: '#9ca3af' },
+                        grid: { color: '#374151' }
+                    }
+                }
+            };
+        }
+
+        function updateDashboard() {
+            const client = document.getElementById('client-selector').value;
+            const dateRange = $('#date-range-picker').data('daterangepicker');
+            if (!dateRange || !allData[client]) return;
+
+            const startDate = dateRange.startDate;
+            const endDate = dateRange.endDate;
+            const duration = moment.duration(endDate.diff(startDate)).asDays();
+
+            const previousEndDate = startDate.clone().subtract(1, 'days');
+            const previousStartDate = previousEndDate.clone().subtract(duration, 'days');
+
+            const fullClientData = allData[client];
+            const currentPeriodData = fullClientData.filter(row => moment(row.Date, 'M/D/YYYY').isBetween(startDate, endDate, null, '[]'));
+            const previousPeriodData = fullClientData.filter(row => moment(row.Date, 'M/D/YYYY').isBetween(previousStartDate, previousEndDate, null, '[]'));
+
+            // Update all dashboard components
+            updateKpiCards(currentPeriodData, previousPeriodData);
+            updateFollowerGrowthChart(currentPeriodData);
+            updateEngagementRateChart(currentPeriodData, currentView);
+            updateKeywordRankingChart(currentPeriodData, currentView);
+            updateKeywordTable(currentPeriodData);
+            updateKpiForecastChart(fullClientData);
+            updateGoalRecommendation(fullClientData);
+        }
+
+        async function initialize() {
+            const clientSelector = document.getElementById('client-selector');
+            const sheetNames = await getSheetNames();
+            
+            if (sheetNames.length === 0) {
+                clientSelector.innerHTML = '<option>No clients found</option>';
+                return;
+            }
+
+            clientSelector.innerHTML = sheetNames.map(name => `<option value="${name}">${name}</option>`).join('');
+
+            for (const name of sheetNames) {
+                const rawData = await fetchData(name);
+                allData[name] = parseData(rawData);
+            }
+
+            $('#date-range-picker').daterangepicker({
+                startDate: moment().subtract(29, 'days'),
+                endDate: moment(),
+                ranges: {
+                   'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                   'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                   'This Month': [moment().startOf('month'), moment().endOf('month')],
+                   'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                }
+            }, updateDashboard);
+
+            clientSelector.addEventListener('change', updateDashboard);
+            
+            document.querySelectorAll('.view-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    document.querySelector('.view-btn.active').classList.remove('active');
+                    e.target.classList.add('active');
+                    currentView = e.target.id.split('-')[0]; // daily, weekly, or monthly
+                    updateDashboard();
+                });
+            });
+
+            updateDashboard();
+        }
+
+        $(document).ready(initialize);
+    </script>
+</body>
+</html>
