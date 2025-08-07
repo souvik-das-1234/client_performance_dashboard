@@ -88,8 +88,8 @@
             <p class="text-lg text-gray-400">Client-centric analytics and forecasting.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 p-4 bg-slate-800 rounded-lg">
-            <!-- Control Panels Here -->
+        <div id="control-panel" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 p-4 bg-slate-800 rounded-lg">
+            <!-- Controls will be rendered here by JS -->
         </div>
 
         <!-- Tier 2: At-a-Glance Performance Snapshot -->
@@ -113,6 +113,12 @@
         let currentView = 'daily';
 
         function renderSkeletons() {
+            const controlPanel = document.getElementById('control-panel');
+            controlPanel.innerHTML = `
+                <div class="skeleton h-16 w-full"></div>
+                <div class="skeleton h-16 w-full"></div>
+                <div class="skeleton h-16 w-full"></div>
+            `;
             const kpiGrid = document.getElementById('kpi-grid');
             kpiGrid.innerHTML = ''; // Clear previous content
             for (let i = 0; i < 4; i++) {
@@ -125,11 +131,31 @@
             }
 
             const chartsArea = document.getElementById('charts-area');
-            chartsArea.innerHTML = `<div class="skeleton h-96 w-full rounded-lg"></div>`;
+            chartsArea.innerHTML = `<div class="skeleton h-96 w-full rounded-lg mt-8"></div>`;
         }
 
         function renderDashboardLayout() {
             // Render the actual dashboard structure once data is ready
+            const controlPanel = document.getElementById('control-panel');
+            controlPanel.innerHTML = `
+                <div>
+                    <label for="client-selector" class="block text-sm font-medium text-gray-400 mb-2">Select Client</label>
+                    <select id="client-selector" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"></select>
+                </div>
+                <div>
+                    <label for="date-range-picker" class="block text-sm font-medium text-gray-400 mb-2">Select Date Range</label>
+                    <input id="date-range-picker" type="text" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Time Granularity</label>
+                    <div class="flex rounded-md shadow-sm">
+                        <button id="daily-view-btn" class="view-btn active flex-1 py-2 px-4 font-semibold rounded-l-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Daily</button>
+                        <button id="weekly-view-btn" class="view-btn flex-1 py-2 px-4 font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Weekly</button>
+                        <button id="monthly-view-btn" class="view-btn flex-1 py-2 px-4 font-semibold rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Monthly</button>
+                    </div>
+                </div>
+            `;
+
             const kpiGrid = document.getElementById('kpi-grid');
             kpiGrid.innerHTML = `
                 <div class="card">
@@ -159,7 +185,7 @@
                 <h2 class="text-2xl font-bold text-white mb-4">Keyword & SEO Analysis</h2>
                 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
                     <div class="lg:col-span-3 chart-container"><h3 class="text-xl font-bold mb-4">Keyword Ranking Trend</h3><canvas id="keyword-ranking-chart"></canvas></div>
-                    <div class="lg:col-span-2 chart-container"><h3 class="text-xl font-bold mb-4">Top 5 Keywords</h3><table id="keyword-table"><thead><tr><th>Keyword</th><th>Avg. Rank</th><th>Best Rank</th></tr></thead><tbody></tbody></table></div>
+                    <div class="lg:col-span-2 chart-container"><h3 class="text-xl font-bold mb-4">Top 5 Keywords</h3><table id="keyword-table" class="w-full"><thead><tr><th class="text-left p-2">Keyword</th><th class="text-left p-2">Avg. Rank</th><th class="text-left p-2">Best Rank</th></tr></thead><tbody></tbody></table></div>
                 </div>
                 <h2 class="text-2xl font-bold text-white mb-4">Predictive Analytics & Forecasting</h2>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -171,13 +197,14 @@
         function showErrorBanner(message) {
             document.getElementById('error-message').textContent = `Specific error from Google API: "${message}"`;
             document.getElementById('error-banner').style.display = 'block';
+            document.getElementById('control-panel').innerHTML = ''; // Clear skeletons
             document.getElementById('kpi-grid').innerHTML = ''; // Clear skeletons
             document.getElementById('charts-area').innerHTML = ''; // Clear skeletons
         }
 
         async function getSheetNames() {
             try {
-                if (API_KEY === 'YOUR_GOOGLE_SHEETS_API_KEY') throw new Error("API Key is a placeholder.");
+                if (API_KEY === 'YOUR_GOOGLE_SHEETS_API_KEY') throw new Error("API Key is a placeholder. Please replace it with your actual key.");
                 const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?key=${API_KEY}`);
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message);
@@ -188,11 +215,36 @@
                 return [];
             }
         }
-
-        // All other JS functions (fetchData, parseData, update charts, etc.) remain the same
-        // ... [The rest of the JavaScript from the previous version goes here] ...
-        // Note: For brevity, the unchanged JS functions are omitted. The full script should be included.
         
+        async function fetchData(sheetName) {
+            try {
+                const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${sheetName}?key=${API_KEY}`);
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+                return data.values;
+            } catch (error) {
+                console.error(`fetchData Error for ${sheetName}:`, error);
+                return [];
+            }
+        }
+        
+        function parseData(data) {
+            if (!data || data.length < 2) return [];
+            const headers = data[0];
+            const rows = data.slice(1);
+            return rows.map(row => {
+                const rowData = {};
+                headers.forEach((header, index) => {
+                    rowData[header] = row[index];
+                });
+                rowData['SMM Views'] = parseInt(rowData['SMM Views'] || 0);
+                rowData['Reach'] = parseInt(rowData['Reach'] || 0);
+                rowData['Engagement'] = parseInt(rowData['Engagement'] || 0);
+                rowData['Followers Gain'] = parseInt(rowData['Followers Gain'] || 0);
+                return rowData;
+            });
+        }
+
         // --- UPDATE FUNCTIONS ---
 
         function updateKpiCards(currentPeriodData, previousPeriodData) {
@@ -233,7 +285,9 @@
         }
         
         function destroyAllCharts() {
-            Object.values(charts).forEach(chart => chart.destroy());
+            Object.values(charts).forEach(chart => {
+                if(chart) chart.destroy();
+            });
             charts = {};
         }
 
@@ -327,6 +381,7 @@
 
         function updateKeywordTable(data) {
             const tableBody = document.querySelector('#keyword-table tbody');
+            if(!tableBody) return;
             tableBody.innerHTML = ''; // Clear existing rows
             if (!data.length) return;
 
@@ -344,10 +399,10 @@
             keywordStats.sort((a, b) => a.avgRank - b.avgRank);
 
             keywordStats.slice(0, 5).forEach(stat => {
-                const row = `<tr>
-                    <td>${stat.name}</td>
-                    <td>${stat.avgRank.toFixed(1)}</td>
-                    <td>${stat.bestRank}</td>
+                const row = `<tr class="border-b border-slate-700 hover:bg-slate-700">
+                    <td class="p-2">${stat.name}</td>
+                    <td class="p-2">${stat.avgRank.toFixed(1)}</td>
+                    <td class="p-2">${stat.bestRank}</td>
                 </tr>`;
                 tableBody.innerHTML += row;
             });
@@ -470,7 +525,7 @@
             const sheetNames = await getSheetNames();
             
             if (sheetNames.length === 0) {
-                // Error banner is already shown by getSheetNames if it fails
+                // Error banner is already shown by getSheetNames if it fails.
                 return;
             }
             
